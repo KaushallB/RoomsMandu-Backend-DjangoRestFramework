@@ -16,6 +16,8 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path,include
+from django.conf import settings
+from django.conf.urls.static import static
 
 admin.site.site_header = "RoomsMandu Admin Panel"
 admin.site.site_title = "RoomsMandu Admin Portal"
@@ -24,4 +26,4 @@ admin.site.index_title = "Welcome to RoomsMandu's Admin Panel"
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/properties/', include('properties.urls'))
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
