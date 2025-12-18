@@ -1,0 +1,12 @@
+services:
+  web:
+    build:
+      context: ./django_roomsmandu_backend
+      dockerfile: Dockerfile
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./django_roomsmandu_backend:/usr/src/django_roomsmandu_backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env.dev
