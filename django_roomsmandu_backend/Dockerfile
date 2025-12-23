@@ -11,11 +11,10 @@ RUN pip install --upgrade pip
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY ./entrypoint.sh .
-# Remove carriage returns from entrypoint script
+COPY . .
+
+# Remove carriage returns from entrypoint script and make it executable
 RUN sed -i 's/\r$//g' /usr/src/django_roomsmandu_backend/entrypoint.sh
 RUN chmod +x /usr/src/django_roomsmandu_backend/entrypoint.sh
 
-COPY . .
-
-ENTRYPOINT [ "/usr/src/django_roomsmandu_backend/entrypoint.sh" ]
+ENTRYPOINT [ "sh", "/usr/src/django_roomsmandu_backend/entrypoint.sh" ]
