@@ -7,4 +7,6 @@ urlpatterns = [
     path('create/', api.create_property, name='api_create_property'),
     path('<uuid:pk>/',api.properties_details, name='api_properties_detail'),
     path('<uuid:pk>/book/',api.book_property, name='api_book_properties'),
+    path('<uuid:pk>/toggle_favourites/', api.toggle_favourite, name='api_toggle_favourite'),
 ]
+

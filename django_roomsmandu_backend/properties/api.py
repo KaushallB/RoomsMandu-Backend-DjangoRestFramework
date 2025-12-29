@@ -5,13 +5,27 @@ from .models import Property, Reservation
 from .serializers import PropertyListSerializer, PropertiesDetailSerializer
 from .forms import PropertyForm
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.permissions import IsAuthenticated
+from users.models import User
 
 
 @api_view(['GET'])
 @authentication_classes([])
 @permission_classes([])
 def properties_list(request):
+    #Auth
+    
+    try:
+        token = request.META['HTTP_AUTHORIZATION'].split('Bearer ')[1]
+        token = AccessToken(token)
+        user_id = token.payload['user_id']
+        user = User.objects.get(pk=user_id)   
+    except Exception as e:
+        user = None 
+        
+        
+    favourites = []
     landlord_id = request.GET.get('landlord_id', None)
     
     if landlord_id:
@@ -19,10 +33,17 @@ def properties_list(request):
     else:
         properties = Property.objects.all()
     
+    #favourite
+    if user:
+        for property in properties:
+            if user in property.favourite.all():
+                favourites.append(property.id)
+                
     serializer = PropertyListSerializer(properties, many=True)
     
     return JsonResponse({
-        'data': serializer.data
+        'data': serializer.data,
+        'favourites': favourites
     })
     
 @api_view(['POST', 'FILES'])
@@ -86,3 +107,17 @@ def book_property(request, pk):
         print('Error:', e)
         
         return JsonResponse({'success': False})
+    
+@api_view(['POST'])
+def toggle_favourite(request, pk):
+    property = Property.objects.get(pk=pk)
+    
+    if request.user in property.favourite.all():
+        property.favourite.remove(request.user)
+        
+        return JsonResponse({'Is_favourite': False})
+    
+    else:
+        property.favourite.add(request.user)
+        
+        return JsonResponse({'Is_favourite': True})
