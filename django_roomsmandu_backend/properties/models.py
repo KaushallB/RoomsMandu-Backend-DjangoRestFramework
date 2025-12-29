@@ -40,3 +40,4 @@ class Reservation(models.Model):
         
         created_by = models.ForeignKey(User, related_name='reservations', on_delete=models.CASCADE)
         created_at = models.DateTimeField(auto_now_add=True)
+        
