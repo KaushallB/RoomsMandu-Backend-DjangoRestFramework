@@ -26,12 +26,18 @@ def properties_list(request):
         
         
     favourites = []
+    is_favourites = request.GET.get('is_favourites', '')
     landlord_id = request.GET.get('landlord_id', None)
     
     if landlord_id:
         properties = Property.objects.filter(landlord_id=landlord_id)
     else:
         properties = Property.objects.all()
+        
+    if is_favourites:
+        properties = Property.objects.filter(favourite__in=[user])
+        
+        
     
     #favourite
     if user:
