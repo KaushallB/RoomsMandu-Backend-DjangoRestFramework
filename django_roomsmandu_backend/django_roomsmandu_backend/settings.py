@@ -35,9 +35,16 @@ SITE_ID= 1
 
 WEBSITE_URL='http://localhost:8000'
 
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer'
+    }
+}
+
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -47,6 +54,7 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'users',
     'properties',
+    'chat',
     
     'rest_framework',
     'rest_framework.authtoken',
@@ -61,7 +69,7 @@ INSTALLED_APPS = [
     
     'corsheaders',
     
-    'chat'
+    
     
 ]
 
@@ -95,6 +103,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'django_roomsmandu_backend.wsgi.application'
+ASGI_APPLICATION = 'django_roomsmandu_backend.asgi.application'
 
 
 # Database
