@@ -26,8 +26,18 @@ def properties_list(request):
         
         
     favourites = []
+    
+    #Filters
+    
     is_favourites = request.GET.get('is_favourites', '')
     landlord_id = request.GET.get('landlord_id', None)
+    
+    district = request.GET.get('district', '')
+    category = request.GET.get('selectedCategory', '')
+    budget = request.GET.get('budgetRange', '')
+    rooms = request.GET.get('numRooms','')
+    kitchen = request.GET.get('numKitchen', '')
+    bathrooms = request.GET.get('numBathrooms', '')
     
     if landlord_id:
         properties = Property.objects.filter(landlord_id=landlord_id)
@@ -35,7 +45,43 @@ def properties_list(request):
         properties = Property.objects.all()
         
     if is_favourites:
-        properties = Property.objects.filter(favourite__in=[user])
+        properties = properties.filter(favourite__in=[user])
+        
+    if district:
+        properties = properties.filter(district=district)
+        
+    if category and category != 'undefined':
+        category_map = {
+            'single_room': ['Single Room', 'SingleRooms'],
+            'flat': ['Flats'],
+            'office': ['Office Space'],
+            'warehouse': ['Warehouse']
+        }
+        db_categories = category_map.get(category, [category])
+        properties = properties.filter(category__in=db_categories)
+    
+    if budget:
+        try:
+            # budget comes as "[5000, 25000]" from frontend
+            budget = budget.strip('[]').split(',')
+            min_budget = int(budget[0])
+            max_budget = int(budget[1])
+            properties = properties.filter(
+                price_per_month__gte=min_budget,
+                price_per_month__lte=max_budget
+            )
+        except:
+            pass
+    
+    if rooms:
+        properties = properties.filter(rooms__gte=rooms)
+        
+    if kitchen:
+        properties = properties.filter(kitchen__gte=kitchen)
+        
+    if bathrooms:
+        properties = properties.filter(bathrooms__gte=bathrooms)
+        
         
         
     
