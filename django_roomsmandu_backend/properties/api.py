@@ -54,7 +54,7 @@ def properties_list(request):
         category_map = {
             'single_room': ['Single Room', 'SingleRooms'],
             'flat': ['Flats'],
-            'office': ['Office Space'],
+            'office': ['OfficeSpace'],
             'warehouse': ['Warehouse']
         }
         db_categories = category_map.get(category, [category])
