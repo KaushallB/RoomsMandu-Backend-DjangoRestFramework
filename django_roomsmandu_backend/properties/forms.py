@@ -14,6 +14,8 @@ class PropertyForm(ModelForm):
             'bathrooms',
             'district',
             'category',
-            'image'  
-            
+            'image',
+            'address',
+            'latitude',
+            'longitude'
         )

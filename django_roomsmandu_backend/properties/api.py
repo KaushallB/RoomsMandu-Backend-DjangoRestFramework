@@ -1,13 +1,16 @@
 from django.http import JsonResponse
+from django.db.models import Q
 
 from rest_framework.decorators import api_view,authentication_classes,permission_classes
-from .models import Property, Reservation
-from .serializers import PropertyListSerializer, PropertiesDetailSerializer
+from .models import Property, Reservation, VideoCallSchedule
+from .serializers import PropertyListSerializer, PropertiesDetailSerializer, VideoCallScheduleSerializer
 from .forms import PropertyForm
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.permissions import IsAuthenticated
 from users.models import User
+import uuid
+from datetime import datetime
 
 
 @api_view(['GET'])
@@ -122,6 +125,39 @@ def properties_details(request, pk):
     serializer = PropertiesDetailSerializer(property, many=False)
     
     return JsonResponse(serializer.data)
+
+@api_view(['DELETE'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def delete_property(request, pk):
+    try:
+        property = Property.objects.get(pk=pk)
+        
+        # Only allow owner to delete
+        if property.landlord != request.user:
+            return JsonResponse({'success': False, 'error': 'Not authorized'}, status=403)
+        
+        property.delete()
+        return JsonResponse({'success': True})
+    except Property.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Property not found'}, status=404)
+
+@api_view(['POST'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def toggle_availability(request, pk):
+    try:
+        property = Property.objects.get(pk=pk)
+        
+        # Only allow owner to toggle
+        if property.landlord != request.user:
+            return JsonResponse({'success': False, 'error': 'Not authorized'}, status=403)
+        
+        property.is_available = not property.is_available
+        property.save()
+        return JsonResponse({'success': True, 'is_available': property.is_available})
+    except Property.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Property not found'}, status=404)
     
 @api_view(['POST'])
 @authentication_classes([JWTAuthentication])
@@ -141,7 +177,11 @@ def book_property(request, pk):
         
         property = Property.objects.get(pk=pk)
         
-        Reservation.objects.create(
+        # Prevent owner from booking their own property
+        if property.landlord == request.user:
+            return JsonResponse({'success': False, 'error': 'You cannot inquire about your own property'}, status=400)
+        
+        reservation = Reservation.objects.create(
             property=property,
             move_in_preference=move_in_preference,
             preferred_move_in_date=preferred_move_in_date,
@@ -153,12 +193,46 @@ def book_property(request, pk):
             created_by=request.user
         )
         
+        # Send notification to owner via WebSocket
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        try:
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f'notifications_{property.landlord.id}',
+                {
+                    'type': 'send_notification',
+                    'message': f'New inquiry for "{property.title}" from {full_name}',
+                    'notification_type': 'inquiry',
+                    'url': '/myinquiries'
+                }
+            )
+        except Exception as e:
+            print(f'Error sending notification: {e}')
+        
         return JsonResponse({'success': True})
     
     except Exception as e:
         print('Error:', e)
         
         return JsonResponse({'success': False})
+
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def get_my_inquiries(request):
+    """Get all inquiries/reservations for the landlord's properties"""
+    from .serializers import ReservationsListSerializer
+    
+    # Get all properties owned by this user
+    my_properties = Property.objects.filter(landlord=request.user)
+    
+    # Get all reservations for those properties
+    inquiries = Reservation.objects.filter(property__in=my_properties).order_by('-created_at')
+    
+    serializer = ReservationsListSerializer(inquiries, many=True)
+    return JsonResponse({'data': serializer.data})
     
 @api_view(['POST'])
 def toggle_favourite(request, pk):
@@ -173,3 +247,127 @@ def toggle_favourite(request, pk):
         property.favourite.add(request.user)
         
         return JsonResponse({'Is_favourite': True})
+
+
+# Video Call APIs
+@api_view(['POST'])
+def schedule_video_call(request, pk):
+    """Schedule a video call for a property"""
+    try:
+        # Get token from header
+        token = request.META.get('HTTP_AUTHORIZATION', '').split('Bearer ')[1]
+        token = AccessToken(token)
+        user_id = token.payload['user_id']
+        user = User.objects.get(pk=user_id)
+        
+        property = Property.objects.get(pk=pk)
+        scheduled_time = request.data.get('scheduled_time')
+        
+        # Generate unique room name
+        room_name = f"roomsmandu-{property.id}-{uuid.uuid4().hex[:8]}"
+        
+        # Create video call schedule
+        video_call = VideoCallSchedule.objects.create(
+            property=property,
+            tenant=user,
+            landlord=property.landlord,
+            scheduled_time=scheduled_time,
+            room_name=room_name,
+            status='pending'
+        )
+        
+        # Send notification to landlord
+        from chat.utils import send_notification
+        send_notification(
+            property.landlord.id, 
+            f"📞 New video call request for '{property.title}'",
+            'call'
+        )
+        
+        serializer = VideoCallScheduleSerializer(video_call)
+        return JsonResponse({'success': True, 'data': serializer.data})
+    
+    except Exception as e:
+        import traceback
+        print('Error scheduling video call:', str(e))
+        traceback.print_exc()
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@api_view(['GET'])
+def get_my_video_calls(request):
+    """Get all video calls for current user (as tenant or landlord)"""
+    try:
+        token = request.META.get('HTTP_AUTHORIZATION', '').split('Bearer ')[1]
+        token = AccessToken(token)
+        user_id = token.payload['user_id']
+        user = User.objects.get(pk=user_id)
+        
+        calls = VideoCallSchedule.objects.filter(
+            Q(tenant=user) | Q(landlord=user)
+        ).order_by('-scheduled_time')
+        
+        serializer = VideoCallScheduleSerializer(calls, many=True)
+        return JsonResponse(serializer.data, safe=False)
+    
+    except Exception as e:
+        return JsonResponse([], safe=False)
+
+
+@api_view(['GET'])
+def get_video_call(request, pk):
+    """Get a single video call by ID"""
+    try:
+        # Get token from header
+        token = request.META.get('HTTP_AUTHORIZATION', '').split('Bearer ')[1]
+        token = AccessToken(token)
+        user_id = token.payload['user_id']
+        user = User.objects.get(pk=user_id)
+        
+        video_call = VideoCallSchedule.objects.get(pk=pk)
+        
+        # Only tenant or landlord can view
+        if user != video_call.tenant and user != video_call.landlord:
+            return JsonResponse({'error': 'Not authorized'}, status=403)
+        
+        serializer = VideoCallScheduleSerializer(video_call, many=False)
+        return JsonResponse(serializer.data)
+    
+    except VideoCallSchedule.DoesNotExist:
+        return JsonResponse({'error': 'Video call not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+@api_view(['POST'])
+def confirm_video_call(request, pk):
+    """Landlord confirms a video call"""
+    try:
+        # Get token from header
+        token = request.META.get('HTTP_AUTHORIZATION', '').split('Bearer ')[1]
+        token = AccessToken(token)
+        user_id = token.payload['user_id']
+        user = User.objects.get(pk=user_id)
+        
+        video_call = VideoCallSchedule.objects.get(pk=pk)
+        
+        # Only landlord can confirm
+        if user != video_call.landlord:
+            return JsonResponse({'success': False, 'error': 'Only landlord can confirm'}, status=403)
+        
+        video_call.status = 'confirmed'
+        video_call.save()
+        
+        # Send notification to tenant
+        from chat.utils import send_notification
+        send_notification(
+            video_call.tenant.id, 
+            f"✅ Your video call for '{video_call.property.title}' has been confirmed!",
+            'success'
+        )
+        
+        serializer = VideoCallScheduleSerializer(video_call, many=False)
+        return JsonResponse({'success': True, 'data': serializer.data})
+    
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)

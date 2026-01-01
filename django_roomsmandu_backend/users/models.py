@@ -32,7 +32,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         id=models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
         email=models.EmailField(unique=True)
         name=models.CharField(max_length=300, blank=True, null=True)
-        avatar= models.ImageField(upload_to='upload/avatars')
+        avatar= models.ImageField(upload_to='upload/avatars', blank=True, null=True)
+        phone_number=models.CharField(max_length=20, blank=True, null=True)
         
         date_joined=models.DateTimeField(auto_now_add=True)
         last_login=models.DateTimeField(blank=True, null=True)

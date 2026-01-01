@@ -18,6 +18,14 @@ class Property(models.Model):
         landlord=models.ForeignKey(User, related_name='properties', on_delete=models.CASCADE)
         created_at=models.DateTimeField(auto_now_add=True)
         
+        # Location for maps
+        latitude=models.DecimalField(max_digits=20, decimal_places=7, null=True, blank=True)
+        longitude=models.DecimalField(max_digits=20, decimal_places=7, null=True, blank=True)
+        address=models.CharField(max_length=500, blank=True, null=True)
+        
+        # Availability status
+        is_available=models.BooleanField(default=True)
+        
         #favourite
         favourite=models.ManyToManyField(User, related_name='favourites', blank=True )
         
@@ -43,4 +51,27 @@ class Reservation(models.Model):
         
         created_by = models.ForeignKey(User, related_name='reservations', on_delete=models.CASCADE)
         created_at = models.DateTimeField(auto_now_add=True)
+
+
+class VideoCallSchedule(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    property = models.ForeignKey(Property, related_name='video_calls', on_delete=models.CASCADE)
+    tenant = models.ForeignKey(User, related_name='tenant_calls', on_delete=models.CASCADE)
+    landlord = models.ForeignKey(User, related_name='landlord_calls', on_delete=models.CASCADE)
+    
+    scheduled_time = models.DateTimeField()
+    room_name = models.CharField(max_length=500)  # Jitsi room URL
+    
+    status = models.CharField(max_length=50, default='pending', choices=[
+        ('pending', 'Pending'),
+        ('confirmed', 'Confirmed'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled')
+    ])
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def get_jitsi_url(self):
+        # Use jitsi.riot.im which doesn't require moderator login
+        return f'https://jitsi.riot.im/{self.room_name}'
         

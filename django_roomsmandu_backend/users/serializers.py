@@ -37,6 +37,14 @@ class CustomRegisterSerializer(RegisterSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'email', 'name', 'avatar_url']
+        fields = ['id', 'email', 'name', 'avatar_url', 'phone_number']
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    """For updating user profile"""
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'name', 'avatar_url', 'phone_number', 'avatar']
+        read_only_fields = ['id', 'email', 'avatar_url']
         
 

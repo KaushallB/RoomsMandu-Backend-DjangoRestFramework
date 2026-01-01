@@ -8,6 +8,7 @@ from .serializers import ConversationSerializer, ConversationDetailSerializer, C
 
 from .models import Conversation
 from users.models import User
+import uuid
 
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
@@ -48,3 +49,30 @@ def convo_start(request, user_id):
         conversation.users.add(user)
         
         return JsonResponse({'success': True, 'conversation_id': conversation.id})
+
+
+@api_view(['POST'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def start_instant_call(request, conversation_id):
+    """Start an instant video call from chat"""
+    try:
+        conversation = Conversation.objects.get(pk=conversation_id)
+        
+        # Verify user is part of conversation
+        if request.user not in conversation.users.all():
+            return JsonResponse({'error': 'Not authorized'}, status=403)
+        
+        # Generate unique room name
+        room_name = f"RoomsManduChat_{conversation_id}_{uuid.uuid4().hex[:8]}"
+        jitsi_url = f'https://jitsi.riot.im/{room_name}'
+        
+        return JsonResponse({
+            'success': True,
+            'room_name': room_name,
+            'jitsi_url': jitsi_url
+        })
+    except Conversation.DoesNotExist:
+        return JsonResponse({'error': 'Conversation not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
