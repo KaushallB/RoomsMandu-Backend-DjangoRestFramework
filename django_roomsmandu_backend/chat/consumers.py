@@ -177,7 +177,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                     f'notifications_{sent_to_id}',
                     {
                         'type': 'notification',
-                        'message': f'💬 New message from {name}',
+                        'message': f'New message from {name}',
                         'notification_type': 'info'
                     }
                 )

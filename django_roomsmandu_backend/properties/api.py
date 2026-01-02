@@ -280,7 +280,7 @@ def schedule_video_call(request, pk):
         from chat.utils import send_notification
         send_notification(
             property.landlord.id, 
-            f"📞 New video call request for '{property.title}'",
+            f"New video call request for '{property.title}'",
             'call'
         )
         
