@@ -13,6 +13,9 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 import os
 from datetime import timedelta
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -29,26 +32,35 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG=bool(os.environ.get('DEBUG', default=0))
 
-ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS').split(' ')
+ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost').split(' ')
 
 SITE_ID= 1
 
-WEBSITE_URL='http://localhost:8000'
+if DEBUG:
+    WEBSITE_URL='http://localhost:8000'
+else:
+    WEBSITE_URL='http://13.71.60.121:1337'
 
-
-
-
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer'
+    }
+}
 
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
     'users',
+    'properties',
+    'chat',
     
     'rest_framework',
     'rest_framework.authtoken',
@@ -56,11 +68,13 @@ INSTALLED_APPS = [
     
     'allauth',
     'allauth.account',
+    'allauth.socialaccount',
     
     'dj_rest_auth',
     'dj_rest_auth.registration',
     
     'corsheaders',
+    
     
     
 ]
@@ -95,6 +109,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'django_roomsmandu_backend.wsgi.application'
+ASGI_APPLICATION = 'django_roomsmandu_backend.asgi.application'
 
 
 # Database
@@ -181,17 +196,39 @@ REST_FRAMEWORK= {
 
 CORS_ALLOWED_ORIGINS=[
     'http://127.0.0.1:8000',
-    'http://127.0.0.1:3000'
+    'http://127.0.0.1:3000',
+    'http://13.71.60.121',
+    'http://13.71.60.121:1337'
 ]
+
+CORS_TRUSTED_ORIGINS=[
+    'http://127.0.0.1:8000',
+    'http://127.0.0.1:3000',
+    'http://13.71.60.121',
+    'http://13.71.60.121:1337'
+]
+
+CORS_ORIGINS_WHITELIST=[
+    'http://127.0.0.1:8000',
+    'http://127.0.0.1:3000',
+    'http://13.71.60.121',
+    'http://13.71.60.121:1337'
+]
+
+CORS_ALLOW_ALL_ORIGINS = True
 
 REST_AUTH = {
     'USE_JWT': True,
-    'JWT_AUTH_HTTPONLY': False
+    'JWT_AUTH_HTTPONLY': False,
+    'JWT_AUTH_COOKIE': None,
+    'JWT_AUTH_REFRESH_COOKIE': None,
+    'REGISTER_SERIALIZER': 'users.serializers.CustomRegisterSerializer',
 }
 
 # Django-allauth settings (new format)
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = 'none'
-ACCOUNT_LOGIN_METHODS = {'email'}
-ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
     
