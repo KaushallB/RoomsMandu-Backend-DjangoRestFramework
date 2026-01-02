@@ -1,0 +1,19 @@
+# env and secrets
+.env
+.env.*
+*.env
+
+# python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+
+# django/media
+media/
+staticfiles/
+
+# docker
+*.pid
+*.log
