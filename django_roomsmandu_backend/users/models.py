@@ -6,19 +6,19 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, UserM
 # Create your models here.
 
 class CustomUserManager(UserManager):
-    def __create_user(self, name, email ,password, **extra_fields):
+    def _create_user(self, name, email, password, **extra_fields):
         if not email:
             raise ValueError('You have not specified a valid email address')
         
-        email= self.normalize_email(email)
-        user=self.model(email=email, name=name, **extra_fields)
+        email = self.normalize_email(email)
+        user = self.model(email=email, name=name, **extra_fields)
         user.set_password(password)
-        user.save(using=self.db)
+        user.save(using=self._db)
         
         return user
     
     def create_user(self, name=None, email=None, password=None, **extra_fields):
-        extra_fields.setdefault('is_staff',False)
+        extra_fields.setdefault('is_staff', False)
         extra_fields.setdefault('is_superuser', False)
         return self._create_user(name, email, password, **extra_fields)
     
@@ -32,7 +32,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         id=models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
         email=models.EmailField(unique=True)
         name=models.CharField(max_length=300, blank=True, null=True)
-        avatar= models.ImageField(upload_to='upload/avatars')
+        avatar= models.ImageField(upload_to='upload/avatars', blank=True, null=True)
+        phone_number=models.CharField(max_length=20, blank=True, null=True)
         
         date_joined=models.DateTimeField(auto_now_add=True)
         last_login=models.DateTimeField(blank=True, null=True)
@@ -46,6 +47,12 @@ class User(AbstractBaseUser, PermissionsMixin):
         USERNAME_FIELD='email'
         EMAIL_FIELD='email'
         REQUIRED_FIELDS=['name',]
+        
+        def avatar_url(self):
+            if self.avatar:
+                return f'{settings.WEBSITE_URL}{self.avatar.url}'
+            else:
+                return ''
         
     
     
