@@ -1,12 +1,15 @@
 services:
-
   nginx:
     build: ./nginx
     ports:
       - 80:80
-      - 1337:80
+      - 443:443
     depends_on:
       - web
+      - daphne
+    volumes:
+      - ./nginx:/etc/nginx
+      - /etc/letsencrypt:/etc/letsencrypt:ro
 
   web:
     build:
@@ -18,7 +21,7 @@ services:
     expose:
       - 8000
     env_file:
-      - .env.dev
+      - .env.prod
     depends_on:
       - db
       - daphne
@@ -29,22 +32,6 @@ services:
     ports:
       - 8002:8002
     env_file:
-      - .env.dev
+      - .env.prod
     depends_on:
       - db
-    
-  db:
-    image: postgres:15-alpine
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
-    environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=admin
-      - POSTGRES_DB=djangoroomsmandu
-    ports:
-      - "5432:5432"
-
-volumes:
-  postgres_data: 
-
-
