@@ -1,5 +1,5 @@
 FROM nginx:1.28.1
 
-RUN rm /etc/nginx/conf.d/default.conf
-COPY nginx.conf /etc/nginx/conf.d
+# Remove the packaged default and rely on bind-mounts from docker-compose
+RUN rm -f /etc/nginx/conf.d/default.conf
 

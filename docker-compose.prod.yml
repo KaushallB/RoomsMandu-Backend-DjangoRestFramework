@@ -8,7 +8,9 @@ services:
       - web
       - daphne
     volumes:
-      - ./nginx:/etc/nginx
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ./nginx/mime.types:/etc/nginx/mime.types
       - /etc/letsencrypt:/etc/letsencrypt:ro
 
   web:
