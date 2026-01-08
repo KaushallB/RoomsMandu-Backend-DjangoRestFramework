@@ -194,25 +194,29 @@ REST_FRAMEWORK= {
     
 }
 
-CORS_ALLOWED_ORIGINS=[
+
+CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:8000',
     'http://127.0.0.1:3000',
     'http://13.71.60.121',
-    'http://13.71.60.121:1337'
+    'http://13.71.60.121:1337',
+    'https://rooms-mandu-frontend.vercel.app',
 ]
 
-CSRF_TRUSTED_ORIGINS=[
+CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
     'http://127.0.0.1:3000',
     'http://13.71.60.121',
-    'http://13.71.60.121:1337'
+    'http://13.71.60.121:1337',
+    'https://rooms-mandu-frontend.vercel.app',
 ]
 
-CORS_ORIGINS_WHITELIST=[
+CORS_ORIGINS_WHITELIST = [
     'http://127.0.0.1:8000',
     'http://127.0.0.1:3000',
     'http://13.71.60.121',
-    'http://13.71.60.121:1337'
+    'http://13.71.60.121:1337',
+    'https://rooms-mandu-frontend.vercel.app',
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True

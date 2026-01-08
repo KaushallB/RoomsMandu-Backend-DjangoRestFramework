@@ -66,7 +66,7 @@ class VideoCallScheduleSerializer(serializers.ModelSerializer):
     class Meta:
         model = VideoCallSchedule
         fields = (
-            'id',
+            'iSd',
             'property',
             'tenant',
             'landlord',
